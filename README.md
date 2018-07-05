@@ -1,6 +1,6 @@
 ![Screenshot](/files/wdroid.gif)
 
-# WUZEDROID
+# WDROID
 
 #### README
 
