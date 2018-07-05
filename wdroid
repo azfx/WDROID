@@ -72,7 +72,7 @@ OPTION='Please enter your choice from below list: '
 options=("Start ADB-Server" "Kill ADB-Server" "Reboot My Device" "Print Android Version" "Enter Android Shell" "Restart USB Mode" "Restart WIFI Mode" "View Wifi Passwords Stored On Device"
          "Connect To My Device By Wifi" "Bruteforce PIN Lock" "Copy Files From Your Computer To Your Phone" "Copy Files From Your Phone To Your Computer" "Install Application(You need The .apk)"
          "Uninstall application" "Update/Upgrade application" "Make A Call" "Send SMS Text" "Delete ALL SMS Stored On Device" "Print Root Status" "Print Battery Level" "Print Serial No."
-	 "Print Device Model" "Print IMEI" "Open Settings Menu" "List Permissions Known To The System" "Filter logs for errors ONLY" "Root Huawei P8 Lite" "Quit")
+	 "Print Device Model" "Print IMEI" "Open Settings Menu" "List Permissions Known To The System" "Filter logs for errors ONLY" "Root Your Phone(Upcomming version)" "Quit")
  
      select opt in "${options[@]}"
         do
@@ -248,7 +248,7 @@ options=("Start ADB-Server" "Kill ADB-Server" "Reboot My Device" "Print Android 
            read -p "Enter the number you wanna call: +467" number
            adb shell am start -a android.intent.action.CALL -d tel:46+$number # // Make a call
            echo -e $g"\nPlease pick up your phone, calling +467$number"$e
-           read -p $red"Please press any button hang up the call: "$e endcall
+           read -p $red"Please press any button hang up the call: " endcall
            echo -e "\nThe call has now been stopped.."
            echo -e "\n-----------------------------------------------"
            adb shell input keyevent 6
@@ -271,11 +271,18 @@ options=("Start ADB-Server" "Kill ADB-Server" "Reboot My Device" "Print Android 
           echo "We have now deleted your mms/sms database, phone is now rebooting";;
 
           "Print Root Status") which su >> /dev/null && echo "Yes, phone has been rooted" || echo "Phone seems to be untouched" ;;
-          "Print Battery Level") adb shell dumpsys power | grep mBatteryLevel= | cut -d'=' -f2 ;;
+      
+
+
+          "Print Battery Level") 
+           battery="$(adb shell dumpsys power | grep mBatteryLevel= | cut -d'=' -f2)"
+           echo "Battery level is: $battery%";;
+
+
           "Print Serial No.") adb shell getprop ro.serialno ;;
           "Print Device Model") adb shell getprop ro.product.model ;;                     
           "Print IMEI") adb shell service call iphonesubinfo 1 | awk -F "'" '{print $2}' | sed '1 d' | tr -d '.' | awk '{print}' ORS= ;;                     
-          "Open Settings Menu") adb shell am start -n com.android.settings/com.android.settings.Settings ;;                     
+          "Open Settings Menu") adb shell am start -a android.settings.SETTINGS ;;                     
           "List Permissions Known To The System") adb shell pm list permissions -f ;;                     
           "Filter logs for errors ONLY") adb logcat *:E ;;                     
           "Quit") break ;; 
