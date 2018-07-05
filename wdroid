@@ -42,7 +42,7 @@ echo -e "              _           _     _ "
 echo -e "             | |         (_)   | |"
 echo -e " __      ____| |____ ___  _  __| |"
 echo -e " \ \ /\ / / _  |  __/ _ \| |/ _  | Author: wuseman"
-echo -e "  \ V  V / (_| | | | (_) | | (_| | Version: 1.4"
+echo -e "  \ V  V / (_| | | | (_) | | (_| | Version: 1.6"
 echo -e "   \_/\_/ \____|_|  \___/|_|\____|"
 echo -e "----------------------------------\n"
 
@@ -71,7 +71,7 @@ fi
 OPTION='Please enter your choice from below list: '
 options=("Start ADB-Server" "Kill ADB-Server" "Reboot My Device" "Print Android Version" "Enter Android Shell" "Restart USB Mode" "Restart WIFI Mode" "View Wifi Passwords Stored On Device"
          "Connect To My Device By Wifi" "Bruteforce PIN Lock" "Copy Files From Your Computer To Your Phone" "Copy Files From Your Phone To Your Computer" "Install Application(You need The .apk)"
-         "Uninstall application" "Update/Upgrade application" "Make A Call" "Send SMS Text" "Delete ALL SMS Stored On Device" "Print Root Status" "Print Battery Level" "Print Serial No."
+         "Uninstall application" "Update/Upgrade application" "Make A Call" "Send SMS Text" "Read sms from device" "Delete ALL SMS Stored On Device" "Print Root Status" "Print Battery Level" "Print Serial No."
 	 "Print Device Model" "Print IMEI" "Open Settings Menu" "List Permissions Known To The System" "Filter logs for errors ONLY" "Root Your Phone(Upcomming version)" "Quit")
  
      select opt in "${options[@]}"
@@ -263,7 +263,23 @@ options=("Start ADB-Server" "Kill ADB-Server" "Reboot My Device" "Print Android 
           sleep 1; adb shell input keyevent 22; sleep 1; adb shell input keyevent 66
           echo "Sms has been sent"
           ;;
-                
+           
+
+          "Read sms from device")
+          sqlite3="$(which /usr/bin/sqlite3 2> /dev/null)"
+             if [ -z "$sqlite3" ]; then
+                 echo "You miss sqlite3, go compile it"
+             fi
+          echo -e "\nPlease wait.. Preparing..\n"
+          adb shell 'su -c' chmod +x /data/data/com.android.providers.telephony/databases/mmssms.db
+          adb shell 'su -c' mkdir -p /storage/tmp; adb shell 'su -c' chmod 777 /storage/tmp
+          adb shell 'su -c' cp /data/data/com.android.providers.telephony/databases/mmssms.db /storage/tmp
+          adb shell 'su -c' chmod 777 /storage/tmp/mmssms.db
+          adb pull /storage/tmp/mmssms.db > /dev/null
+          echo -e "\nDone, printing all sms from device...\n"
+          sqlite3 mmssms.db 'SELECT * FROM sms WHERE read=0;' | cut -d'|' -f3,13
+          ;;
+
           "Delete ALL SMS Stored On Device")
           read -p "are you REALLY sure? (press CTRL+c to cancel) " delem
           adb shell 'su -c' rm /data/data/com.android.providers.telephony/databases/mmssms.db 
