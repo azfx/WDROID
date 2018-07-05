@@ -3,6 +3,11 @@
 ## Developer: wuseman
 ################################################
 
+
+# 1.6 New features has been added
++-------------------------------------
++ Now you can read sms directly from your pc, sqlite3 is required
+
 # 1.5 New features has been added 
 +-------------------------------------
 + Rewritten entire code to a more clean and nice setup
