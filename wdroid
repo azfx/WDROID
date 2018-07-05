@@ -1,0 +1,284 @@
+#!/bin/bash
+##################################################################################
+##### LICENSE ####################################################################
+##################################################################################
+####                                                                          ####
+#### Copyright (C) 2018 wuseman <info@sendit.nu>                              ####
+####                                                                          ####
+#### This program is free software: you can redistribute it and/or modify     ####
+#### it under the terms of the GNU General Public License as published by     ####
+#### the Free Software Foundation, either version 3 of the License, or        ####
+#### (at your option) any later version.                                      ####
+####                                                                          ####
+#### This program is distributed in the hope that it will be useful,          ####
+#### but WITHOUT ANY WARRANTY; without even the implied warranty of           ####
+#### MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the            ####
+#### GNU General Public License at <http://www.gnu.org/licenses/> for         ####
+#### more details.                                                            ####
+####                                                                          ####
+##################################################################################
+##### GREETINGS ##################################################################
+##################################################################################
+####                                                                          ####
+#### To all developers that contributes to all kind of open source projects   ####
+#### Keep up the good work!                                                   #<3#
+####                                                                          ####
+#### https://sendit.nu & https://github.com/wuseman                           ####
+####                                                                          ####
+##################################################################################
+#### DESCRIPTION #################################################################
+##################################################################################
+####                                                                          ####
+#### wdroid is a console tool which is intended to facilitate                 ####
+#### the work of adb and fastboot for android devices.                        ####
+####                                                                          ####
+#### Enjoy another awesome 'bash' script from wuseman. Questions? Conact me!  ####
+####                                                                          ####
+##################################################################################
+#### Begin of code  ##############################################################
+
+
+echo -e "              _           _     _ "
+echo -e "             | |         (_)   | |"
+echo -e " __      ____| |____ ___  _  __| |"
+echo -e " \ \ /\ / / _  |  __/ _ \| |/ _  | Author: wuseman"
+echo -e "  \ V  V / (_| | | | (_) | | (_| | Version: 1.4"
+echo -e "   \_/\_/ \____|_|  \___/|_|\____|"
+echo -e "----------------------------------\n"
+
+r='\e[1;34m'; g='\e[0;32m'; y='\e[1;33m'; b='\e[1;34m'; c='\e[1;36m'; w='\e[0;32m'; e='\e[0m'
+red=`tput setaf 1`; green=`tput setaf 2`; reset=`tput sgr0`
+
+CFG_FILE="/etc/wuzedroid/wuzedroid.conf"
+CONTACTS="/etc/wuzedroid/contacts_for_adb.txt"
+
+     if [ -x adb ];
+          then
+          echo -e "\nThis tool require adb to run\n"
+          read -p "Want me to install adb for you? (yes/no) " yepadb
+
+     case $yepadb in
+         yes) emerge --sync; emerge --ask dev-util/android-tools ;;
+         *) exit 1 ;;
+ esac
+fi
+
+     if [[ $EUID -ne 0 ]]; then
+         echo -e "\nYou must be Administrator to run this script\n" 2>&1
+         exit 1
+     fi
+
+OPTION='Please enter your choice from below list: '
+options=("Start ADB-Server" "Kill ADB-Server" "Reboot My Device" "Print Android Version" "Enter Android Shell" "Restart USB Mode" "Restart WIFI Mode" "View Wifi Passwords Stored On Device"
+         "Connect To My Device By Wifi" "Bruteforce PIN Lock" "Copy Files From Your Computer To Your Phone" "Copy Files From Your Phone To Your Computer" "Install Application(You need The .apk)"
+         "Uninstall application" "Update/Upgrade application" "Make A Call" "Send SMS Text" "Delete ALL SMS Stored On Device" "Print Root Status" "Print Battery Level" "Print Serial No."
+	 "Print Device Model" "Print IMEI" "Open Settings Menu" "List Permissions Known To The System" "Filter logs for errors ONLY" "Root Huawei P8 Lite" "Quit")
+ 
+     select opt in "${options[@]}"
+        do
+          case $opt in
+          "Start ADB-Server") if pidof -x "adb" >/dev/null; then echo >&2 'It seems adb is already running'; else echo >&2
+           abort()
+          {
+          echo >&2 '
+          ***************
+          *** ABORTED ***
+          ***************
+          ' echo "An error occurred. Exiting..." >&2; exit 1; }
+         trap 'abort' 0
+         set -e
+         # If an error occurs, the abort() function will be called.
+         adb start-server 2> /dev/null
+         trap : 0
+         echo 'Sucessfully started adb '
+         fi
+         ;;
+
+          "Kill ADB-Server")
+           ### START ADB SERVER
+           if pidof -x "add ps aux here plz" >/dev/null; then
+           echo >&2 '
+                  ADB Is not running '
+         else
+          echo >&2 '
+         '
+           abort()
+          {
+          echo >&2 '
+          ***************
+          *** ABORTED ***
+          ***************
+          '
+          echo "An error occurred. Exiting..." >&2
+          exit 1
+          }
+         trap 'abort' 0
+         set -e
+         adb kill-server
+         trap : 0
+         echo >&2 'Sucessfully killed adb'
+         fi
+         ;;
+
+          "Reboot My Device")
+          choice=" "
+          while [ "$choice" != "q" ]
+          do
+          echo -e "\n1) Reboot System As Normal"
+          echo "2) Reboot To Bootloader (Fastboot)"
+          echo "3) Reboot to Recovery Mode"
+          echo -e "q) Quit\n"
+
+            read choice
+                case $choice in
+            '1')
+             adb reboot
+             echo "Rebooting System As Normal"
+             ;;
+            '2')
+           echo "Reboot To Bootloader (Fastboot)"
+           adb reboot bootloader
+            ;;
+            '3')
+           echo "Reboot To Recovery Mode"
+           echo "Use 'fastboot' instead of adb in recovery mode.."
+           adb reboot recovery
+             ;;
+            'q') echo "Ok, aborting....";;
+            *)   echo "menu item is not available; try again!";;
+              esac
+          done
+          exit 0
+          ;;
+
+          "Print Android Version")
+          ANDROID_VERSION="$(adb shell getprop ro.build.version.release)"
+          echo -e "\nCurrent android version: $ANDROID_VERSION\n"
+          ;;
+
+          "Enter Android Shell")
+           echo -e "\nTrying to enter your device terminal...\n"
+           adb shell 'su -c echo -e "Connection works fine: yes/no"'
+           read -p "Want me to connect for real: " yesno
+             case $yesno in
+                 yes) adb shell;;
+                 no) exit 0;;
+             esac
+                 ;;
+
+           "Restart USB mode")
+           adb usb
+           ;;
+
+           "Restart WIFI  mode")
+           adb wifi
+           ;;
+
+
+           "View Wifi Passwords Stored On Device")
+           echo -e  "\n----- W I F I - P W D S -----\n"
+           adb shell 'su -c cat /data/misc/wifi/wpa_supplicant.conf' | grep 'ssid=\|psk' | sed '2d' | sed 's/.//' | cut -d'"' -f2            echo -e "\n-----------------------------" ;;
+
+           "Connect To My Device By Wifi")
+           read -p "Device ip: " ip; read -p "Device port: " port; adb connect $ip:$port ;;
+
+           "Bruteforce PIN Lock")
+           screen="$(adb shell dumpsys nfc | grep 'mScreenState=')"
+           case $screen in
+                 "mScreenState=OFF") echo "Screen is already off! Great, moving on.." ;;
+                 "mScreenState=ON_UNLOCKED") echo "It seems screen is unlocked already, locking phone and turning screen off..."; adb shell input keyevent 26; echo -e "\nSuccessfully locked phone.." ;;
+           esac
+
+           echo -e "\nTurning screen on.."
+           adb shell input keyevent 26 && echo -e "\nSuccessfully started screen..\n" || echo "Failed to power on screen ; exit"
+           echo -e "Bruteforce attack will now start, please do not touch phone..."
+           adb shell input keyevent 82
+           adb shell input swipe 407 1211 378 85
+           for i in {0000..9999}; do
+           echo -e "Trying pin :$i"
+           for (( j=0; j<${#i}; j++ )); do
+           adb shell input keyevent $((`echo ${i:$j:1}`+7))
+           done
+           adb shell input keyevent 66
+           adb shell input swipe 407 1211 378 85
+           if ! (( `expr $i + 1` % 5 )); then
+           adb shell input keyevent 66
+           sleep 30
+           adb shell input keyevent 82
+           adb shell input swipe 407 1211 378 85
+           fi
+           done
+           ;;
+
+           "Copy Files From Computer To Phone")
+           read -p "Source file to send: " source_file
+           read -p "Folder to place $source_file: " destination
+           adb push $source_file $destination
+           echo ""
+           ;;
+
+           "Copy Files From Phone To Computer")
+           read -p "Source file you want transfer to your computer: " android_source_file
+           read -p "Where to store it on your computer: " pc_source
+           adb pull $android_source_file $pc_source
+           echo ""
+           ;;
+
+           "Install Application(You need The .apk)")
+           read -p "Where is your apk file stored? (/path/to/appklication/application.apk) " apk_file
+           adb -e install $apk_file
+           echo ""
+           ;; 
+
+           "Uninstall Application")
+           "Where is your apk file stored? (/path/to/appklication/application.apk) " apk_file_to_uninstall
+           adb -e install $apk_file_to_uninstall
+           echo ""
+           ;; 
+
+           "Update/Upgrade Application(You need The .apk)")
+           "Where is your apk file stored? (/path/to/appklication/application.apk) " apk_file_to_update
+           adb install -r $apk_file_to_uninstall # //  -r means re-install the app and keep its data on the device.
+           echo ""
+           ;; 
+
+           "Make A Call")
+           adb kill-server; adb start-server
+           echo -e "\n-----------------------------------------------"
+           read -p "Enter the number you wanna call: +467" number
+           adb shell am start -a android.intent.action.CALL -d tel:46+$number # // Make a call
+           echo -e $g"\nPlease pick up your phone, calling +467$number"$e
+           read -p $red"Please press any button hang up the call: "$e endcall
+           echo -e "\nThe call has now been stopped.."
+           echo -e "\n-----------------------------------------------"
+           adb shell input keyevent 6
+           echo ""
+           exit 1
+           ;;
+
+          "Send SMS Text")
+          read -p "Send to: +46"
+          read -p "Text to send: $texttosend"
+          adb shell am start -a android.intent.action.SENDTO -d sms:+46$smsnumver --es sms_body "$texttosend" --ez exit_on_sent true
+          sleep 1; adb shell input keyevent 22; sleep 1; adb shell input keyevent 66
+          echo "Sms has been sent"
+          ;;
+                
+          "Delete ALL SMS Stored On Device")
+          read -p "are you REALLY sure? (press CTRL+c to cancel) " delem
+          adb shell 'su -c' rm /data/data/com.android.providers.telephony/databases/mmssms.db 
+          adb reboot 
+          echo "We have now deleted your mms/sms database, phone is now rebooting";;
+
+          "Print Root Status") which su >> /dev/null && echo "Yes, phone has been rooted" || echo "Phone seems to be untouched" ;;
+          "Print Battery Level") adb shell dumpsys power | grep mBatteryLevel= | cut -d'=' -f2 ;;
+          "Print Serial No.") adb shell getprop ro.serialno ;;
+          "Print Device Model") adb shell getprop ro.product.model ;;                     
+          "Print IMEI") adb shell service call iphonesubinfo 1 | awk -F "'" '{print $2}' | sed '1 d' | tr -d '.' | awk '{print}' ORS= ;;                     
+          "Open Settings Menu") adb shell am start -n com.android.settings/com.android.settings.Settings ;;                     
+          "List Permissions Known To The System") adb shell pm list permissions -f ;;                     
+          "Filter logs for errors ONLY") adb logcat *:E ;;                     
+          "Quit") break ;; 
+          *) echo "Sorry, that value has not been added yet, 1-36 is your options..." ;;
+    esac
+done
