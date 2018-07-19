@@ -37,6 +37,11 @@
 ##################################################################################
 #### Begin of code  ##############################################################
 
+     if [[ $EUID -ne 0 ]]; then
+         echo -e "\nYou must be Administrator to run this script\n" 2>&1
+         exit 1
+     fi
+
 
 echo -e "              _           _     _ "
 echo -e "             | |         (_)   | |"
@@ -52,28 +57,59 @@ red=`tput setaf 1`; green=`tput setaf 2`; reset=`tput sgr0`
 CFG_FILE="/etc/wuzedroid/wuzedroid.conf"
 CONTACTS="/etc/wuzedroid/contacts_for_adb.txt"
 
-     if [ -x adb ];
-          then
-          echo -e "\nThis tool require adb to run\n"
-          read -p "Want me to install adb for you? (yes/no) " yepadb
+# is adb installed?
+isadbinstalled="$(which adb 2> /dev/null)"
+distro="$(cat /etc/os-release | head -n 1 | cut -d'=' -f2)"
 
-     case $yepadb in
-         yes) emerge --sync; emerge --ask dev-util/android-tools ;;
-         *) exit 1 ;;
- esac
+if [ -z "$isadbinstalled" ]; then
+ echo -e "\nThis tool require adb...\n"
+  read -p "Want me to install adb for you? (yes/no) " adbinstall
 fi
 
-     if [[ $EUID -ne 0 ]]; then
-         echo -e "\nYou must be Administrator to run this script\n" 2>&1
-         exit 1
-     fi
+  case $adbinstall in
+            "yes")
+                echo -e "\nPlease wait..\n"
+             sleep 1
+     case $distro in
+            "Gentoo")
+                echo -e "It seems you running \e[1;32m$distro\e[0m wich is supported, installing adb....\n"
+                emerge --ask android-tools ;;
+            "Sabayon") 
+                echo -e "It seems you running \e[1;32m$distro\e[0m wich is supported, installing adb....\n"
+                emerge --ask android-tools ;;
+            "Ubuntu") 
+               echo -e "It seems you running \e[1;32m$distro\e[0m wich is supported, installing adb....\n"
+                apt update -y; apt upgrade -y; apt-get install adb ;;
+            "Debian") 
+               echo -e "It seems you running \e[1;32m$distro\e[0m wich is supported, installing adb....\n"
+               apt update -y; apt upgrade -y; apt-get install adb ;;
+            "Raspbian") 
+               echo -e "It seems you running \e[1;32m$distro\e[0m wich is supported, installing adb....\n"
+               apt update -y; apt upgrade -y; apt-get install adb ;;
+            "Mint") 
+               echo -e "It seems you running \e[1;32m$distro\e[0m wich is supported, installing adb....\n"
+               apt update -y; apt upgrade -y; apt-get install adb ;;
+
+             "no") echo "Ok, go compile it yourself then mofo" ; exit ;;
+esac
+             echo -e "This tool is not supported for $distro, please go compile it from source instead...\n" 
+esac
+
+isphoneconnected="$(adb devices | sed '1d' | sed '/^$/d')"
+
+if [ ! $isphoneconnected 2> /dev/null ]; then
+   echo -e "Please check your device, it seems to be disconnected...\n"
+   exit
+fi
+
 
 OPTION='Please enter your choice from below list: '
 options=("Start ADB-Server" "Kill ADB-Server" "Reboot My Device" "Print Android Version" "Enter Android Shell" "Restart USB Mode" "Restart WIFI Mode" "View Wifi Passwords Stored On Device"
          "Connect To My Device By Wifi" "Bruteforce PIN Lock" "Copy Files From Your Computer To Your Phone" "Copy Files From Your Phone To Your Computer" "Install Application(You need The .apk)"
          "Uninstall application" "Update/Upgrade application" "Make A Call" "Send SMS Text" "Read sms from device" "Delete ALL SMS Stored On Device" "Print Root Status" "Print Battery Level" "Print Serial No."
-	 "Print Device Model" "Print IMEI" "Open Settings Menu" "List Permissions Known To The System" "Filter logs for errors ONLY" "Root Your Phone(Upcomming version)" "Quit")
- 
+	 "Print Device Model" "Print IMEI" "Open Settings Menu" "List Permissions Known To The System" "Filter logs for errors ONLY" "Root Your Phone(Upcomming version)" "Take A Screenshot And View On Pc"  
+         "Remove Empty Folders From Already Deleted Apps" "Take A Photo" "Quit")
+
      select opt in "${options[@]}"
         do
           case $opt in
@@ -88,9 +124,7 @@ options=("Start ADB-Server" "Kill ADB-Server" "Reboot My Device" "Print Android 
          trap 'abort' 0
          set -e
          # If an error occurs, the abort() function will be called.
-         adb start-server 2> /dev/null
-         trap : 0
-         echo 'Sucessfully started adb '
+         adb start-server 2> /dev/null; trap : 0;echo 'Sucessfully started adb '
          fi
          ;;
 
@@ -287,21 +321,67 @@ options=("Start ADB-Server" "Kill ADB-Server" "Reboot My Device" "Print Android 
           echo "We have now deleted your mms/sms database, phone is now rebooting";;
 
           "Print Root Status") which su >> /dev/null && echo "Yes, phone has been rooted" || echo "Phone seems to be untouched" ;;
-      
-
 
           "Print Battery Level") 
            battery="$(adb shell dumpsys power | grep mBatteryLevel= | cut -d'=' -f2)"
            echo "Battery level is: $battery%";;
 
 
-          "Print Serial No.") adb shell getprop ro.serialno ;;
-          "Print Device Model") adb shell getprop ro.product.model ;;                     
-          "Print IMEI") adb shell service call iphonesubinfo 1 | awk -F "'" '{print $2}' | sed '1 d' | tr -d '.' | awk '{print}' ORS= ;;                     
-          "Open Settings Menu") adb shell am start -a android.settings.SETTINGS ;;                     
-          "List Permissions Known To The System") adb shell pm list permissions -f ;;                     
-          "Filter logs for errors ONLY") adb logcat *:E ;;                     
+          "Print Serial No.")
+              serial="$(adb shell getprop ro.serialno)"
+           echo -e "\nDevice serial: $serial\n" ;;
+
+          "Print Device Model")
+             model="$(adb shell getprop ro.product.model)"
+           echo -e "\nDevice model: $model\n)" ;;
+
+          "Print IMEI")
+            imei="$(adb shell service call iphonesubinfo 1 | awk -F "'" '{print $2}' | sed '1 d' | tr -d '.' | awk '{print}' ORS=)"
+          echo -e "\nDevice imei: $imei\n" ;;
+
+
+          "Open Settings Menu") adb shell am start -a android.settings.SETTINGS ;;
+
+          "List Permissions Known To The System") adb shell pm list permissions -f ;;
+
+          "Filter logs for errors ONLY") adb logcat *:E ;;
+
+          "Take A Screenshot And View On Pc") adb shell screencap -p /sdcard/screencap.png 2> /dev/null; adb pull /sdcard/screencap.png > /dev/null; gwenview screencap.png 2> /dev/null; rm screencap.png ;;
+
+          "Uninstall System App")  
+             read -p "System app to delete:" systemapp
+                pm uninstall -k --user 0 $systemapp ;;
+
+          "Remove Empty Folders From Already Deleted Apps")
+             echo -e "\nPlease wait, searching for empty directories.\n"
+             find / -type d -empty -delete 2> /dev/null 
+             echo -e "\nEmpty directories has now been deleted...\n" ;;
+
+          "Take A Photo")
+          if [ "$1" = "--delay" ]; then
+               echo -e "Launching camera.."
+                 adb shell "am start -a android.media.action.IMAGE_CAPTURE > /dev/null" && \
+                 sleep $2 && \
+                 adb shell "input keyevent 27"
+               echo -e "Photo has been taken.."
+           exit
+                else
+               echo "Hold camera still..."
+                 sleep 0.3
+               echo "Launching camera..."
+                 sleep 0.3
+               echo "Smile to the camera..."
+                 adb shell "am start -a android.media.action.IMAGE_CAPTURE > /dev/null" && \
+                 sleep 1 && \
+                 adb shell "input keyevent 27"
+                 sleep 1
+               echo "Photo has been taken.." 
+            fi
+            ;;
+
+
           "Quit") break ;; 
+
           *) echo "Sorry, that value has not been added yet, 1-36 is your options..." ;;
     esac
 done
