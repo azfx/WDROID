@@ -106,7 +106,7 @@ fi
 OPTION='Please enter your choice from below list: '
 options=("Start ADB-Server" "Kill ADB-Server" "Reboot My Device" "Print Android Version" "Enter Android Shell" "Restart USB Mode" "Restart WIFI Mode" "View Wifi Passwords Stored On Device"
          "Connect To Device By Wifi" "Bruteforce PIN Lock" "Copy Files From Computer To Phone" "Copy Files From Your Phone To Your Computer" "Install Application(You need The .apk)"
-         "Uninstall Application" "Unnistall OEM Bloatware" "Update/Upgrade Application(You Need The .apk File To Application)" "Make A Call" "Send SMS Text" "Read sms from device" "Delete ALL SMS Stored On Device" "Print Root Status" "Print Battery Level" "Print Serial No."
+         "Uninstall Application" "Uninstall OEM Bloatware" "Update/Upgrade Application(You Need The .apk File To Application)" "Make A Call" "Send SMS Text" "Read sms from device" "Delete ALL SMS Stored On Device" "Print Root Status" "Print Battery Level" "Print Serial No."
 	 "Print Device Model" "Print IMEI" "Open Settings Menu" "List Permissions Known To The System" "Filter logs for errors ONLY" "Root Your Phone(Upcomming version)" "Take A Screenshot And View On Pc"  
          "Remove Empty Folders From Already Deleted Apps" "Take A Photo" "Is My Device QTADB Compatible" "Quit")
 
@@ -271,10 +271,14 @@ options=("Start ADB-Server" "Kill ADB-Server" "Reboot My Device" "Print Android 
            ;;
 
            "Uninstall OEM Bloatware")
-           read -p "System Application To Remove " systemapp
-           echo -e "\nList Applications That Can Be Removed\n"
-           pm list packages | grep '<OEM/Carrier/App Name>
-           pm uninstall -k --user 0 <name of package>
+           echo -e "\nPlease wait. Searching For Your Applications\n"
+           sleep 0.5
+           adb shell pm list packages | cut -d':' -f2
+           echo -e "\nListed Applications That Can Be Removed..(PLEASE DO NOT UNINSTALL ANYTHING IF YOU ARE NOT 100% SURE WHAT IT IS FOR)\n"
+           read -p "System Application To Remove: " systemapp
+#           pm list packages | grep '<OEM/Carrier/App Name>
+           echo ""
+           adb shell pm uninstall -k --user 0 systemapp
            ;;
 
            "Update/Upgrade Application(You Need The .apk File To Application)")
@@ -317,7 +321,7 @@ options=("Start ADB-Server" "Kill ADB-Server" "Reboot My Device" "Print Android 
           adb shell 'su -c' chmod 777 /storage/tmp/mmssms.db
           adb pull /storage/tmp/mmssms.db > /dev/null
           echo -e "\nDone, printing all sms from device...\n"
-          sqlite3 mmssms.db 'SELECT * FROM sms WHERE read=0;' | cut -d'|' -f3,13
+          sqlite3 mmssms.db 'SELECT _id, snippet from threads;'
           ;;
 
           "Delete ALL SMS Stored On Device")
