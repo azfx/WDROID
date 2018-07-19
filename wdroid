@@ -105,10 +105,10 @@ fi
 
 OPTION='Please enter your choice from below list: '
 options=("Start ADB-Server" "Kill ADB-Server" "Reboot My Device" "Print Android Version" "Enter Android Shell" "Restart USB Mode" "Restart WIFI Mode" "View Wifi Passwords Stored On Device"
-         "Connect To My Device By Wifi" "Bruteforce PIN Lock" "Copy Files From Computer To Phone" "Copy Files From Your Phone To Your Computer" "Install Application(You need The .apk)"
-         "Uninstall application" "Update/Upgrade Application(You Need The .apk File To Application)" "Make A Call" "Send SMS Text" "Read sms from device" "Delete ALL SMS Stored On Device" "Print Root Status" "Print Battery Level" "Print Serial No."
+         "Connect To Device By Wifi" "Bruteforce PIN Lock" "Copy Files From Computer To Phone" "Copy Files From Your Phone To Your Computer" "Install Application(You need The .apk)"
+         "Uninstall Application" "Unnistall OEM Bloatware" "Update/Upgrade Application(You Need The .apk File To Application)" "Make A Call" "Send SMS Text" "Read sms from device" "Delete ALL SMS Stored On Device" "Print Root Status" "Print Battery Level" "Print Serial No."
 	 "Print Device Model" "Print IMEI" "Open Settings Menu" "List Permissions Known To The System" "Filter logs for errors ONLY" "Root Your Phone(Upcomming version)" "Take A Screenshot And View On Pc"  
-         "Remove Empty Folders From Already Deleted Apps" "Take A Photo" "Quit")
+         "Remove Empty Folders From Already Deleted Apps" "Take A Photo" "Is My Device QTADB Compatible" "Quit")
 
      select opt in "${options[@]}"
         do
@@ -213,7 +213,7 @@ options=("Start ADB-Server" "Kill ADB-Server" "Reboot My Device" "Print Android 
            echo -e  "\n----- W I F I - P W D S -----\n"
            adb shell 'su -c cat /data/misc/wifi/wpa_supplicant.conf' | grep 'ssid=\|psk' | sed '2d' | sed 's/.//' | cut -d'"' -f2 | sed '1~2 a\\' ;;
 
-           "Connect To My Device By Wifi")
+           "Connect To Device By Wifi")
            read -p "Device ip: " ip; read -p "Device port: " port; adb connect $ip:$port ;;
 
            "Bruteforce PIN Lock")
@@ -268,6 +268,13 @@ options=("Start ADB-Server" "Kill ADB-Server" "Reboot My Device" "Print Android 
            "Where is your apk file stored? (/path/to/appklication/application.apk) " apk_file_to_uninstall
            adb -e install $apk_file_to_uninstall
            echo ""
+           ;;
+
+           "Uninstall OEM Bloatware")
+           read -p "System Application To Remove " systemapp
+           echo -e "\nList Applications That Can Be Removed\n"
+           pm list packages | grep '<OEM/Carrier/App Name>
+           pm uninstall -k --user 0 <name of package>
            ;;
 
            "Update/Upgrade Application(You Need The .apk File To Application)")
@@ -380,6 +387,9 @@ options=("Start ADB-Server" "Kill ADB-Server" "Reboot My Device" "Print Android 
             fi
             ;;
 
+          "Is My Device QTADB Compatible")
+              adb shell busybox ls -l -a > /dev/null && echo -e "\nYour phone is compatible with qtadb..\n" || echo -e "\nYour phone is not compatible with qtadb. Go install busybox on your phone from playstore..\n"
+            ;;
 
           "Quit") break ;; 
 
