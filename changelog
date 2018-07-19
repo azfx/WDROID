@@ -11,6 +11,8 @@
 + Remove Empty Folders From Already Deleted Apps
 + Check if your device is compatible with qtadb
 + List contacts on device (require sqlite3)
++ Detect if phone is connected or not, if not then dont run wdroid
++ Detect if adb is installed on pc, supported for (Gentoo/Sabayon/Ubuntu/Debian/Raspbian/Mint)
 + Bugfixes
 
 # 1.5 New features has been added 
