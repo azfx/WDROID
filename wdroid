@@ -105,8 +105,8 @@ fi
 
 OPTION='Please enter your choice from below list: '
 options=("Start ADB-Server" "Kill ADB-Server" "Reboot My Device" "Print Android Version" "Enter Android Shell" "Restart USB Mode" "Restart WIFI Mode" "View Wifi Passwords Stored On Device"
-         "Connect To My Device By Wifi" "Bruteforce PIN Lock" "Copy Files From Your Computer To Your Phone" "Copy Files From Your Phone To Your Computer" "Install Application(You need The .apk)"
-         "Uninstall application" "Update/Upgrade application" "Make A Call" "Send SMS Text" "Read sms from device" "Delete ALL SMS Stored On Device" "Print Root Status" "Print Battery Level" "Print Serial No."
+         "Connect To My Device By Wifi" "Bruteforce PIN Lock" "Copy Files From Computer To Phone" "Copy Files From Your Phone To Your Computer" "Install Application(You need The .apk)"
+         "Uninstall application" "Update/Upgrade Application(You Need The .apk File To Application)" "Make A Call" "Send SMS Text" "Read sms from device" "Delete ALL SMS Stored On Device" "Print Root Status" "Print Battery Level" "Print Serial No."
 	 "Print Device Model" "Print IMEI" "Open Settings Menu" "List Permissions Known To The System" "Filter logs for errors ONLY" "Root Your Phone(Upcomming version)" "Take A Screenshot And View On Pc"  
          "Remove Empty Folders From Already Deleted Apps" "Take A Photo" "Quit")
 
@@ -211,7 +211,7 @@ options=("Start ADB-Server" "Kill ADB-Server" "Reboot My Device" "Print Android 
 
            "View Wifi Passwords Stored On Device")
            echo -e  "\n----- W I F I - P W D S -----\n"
-           adb shell 'su -c cat /data/misc/wifi/wpa_supplicant.conf' | grep 'ssid=\|psk' | sed '2d' | sed 's/.//' | cut -d'"' -f2            echo -e "\n-----------------------------" ;;
+           adb shell 'su -c cat /data/misc/wifi/wpa_supplicant.conf' | grep 'ssid=\|psk' | sed '2d' | sed 's/.//' | cut -d'"' -f2 | sed '1~2 a\\' ;;
 
            "Connect To My Device By Wifi")
            read -p "Device ip: " ip; read -p "Device port: " port; adb connect $ip:$port ;;
@@ -251,7 +251,7 @@ options=("Start ADB-Server" "Kill ADB-Server" "Reboot My Device" "Print Android 
            echo ""
            ;;
 
-           "Copy Files From Phone To Computer")
+           "Copy Files From Your Phone To Your Computer")
            read -p "Source file you want transfer to your computer: " android_source_file
            read -p "Where to store it on your computer: " pc_source
            adb pull $android_source_file $pc_source
@@ -262,19 +262,19 @@ options=("Start ADB-Server" "Kill ADB-Server" "Reboot My Device" "Print Android 
            read -p "Where is your apk file stored? (/path/to/appklication/application.apk) " apk_file
            adb -e install $apk_file
            echo ""
-           ;; 
+           ;;
 
            "Uninstall Application")
            "Where is your apk file stored? (/path/to/appklication/application.apk) " apk_file_to_uninstall
            adb -e install $apk_file_to_uninstall
            echo ""
-           ;; 
+           ;;
 
-           "Update/Upgrade Application(You need The .apk)")
+           "Update/Upgrade Application(You Need The .apk File To Application)")
            "Where is your apk file stored? (/path/to/appklication/application.apk) " apk_file_to_update
            adb install -r $apk_file_to_uninstall # //  -r means re-install the app and keep its data on the device.
            echo ""
-           ;; 
+           ;;
 
            "Make A Call")
            adb kill-server; adb start-server
@@ -297,7 +297,6 @@ options=("Start ADB-Server" "Kill ADB-Server" "Reboot My Device" "Print Android 
           sleep 1; adb shell input keyevent 22; sleep 1; adb shell input keyevent 66
           echo "Sms has been sent"
           ;;
-           
 
           "Read sms from device")
           sqlite3="$(which /usr/bin/sqlite3 2> /dev/null)"
@@ -316,11 +315,13 @@ options=("Start ADB-Server" "Kill ADB-Server" "Reboot My Device" "Print Android 
 
           "Delete ALL SMS Stored On Device")
           read -p "are you REALLY sure? (press CTRL+c to cancel) " delem
-          adb shell 'su -c' rm /data/data/com.android.providers.telephony/databases/mmssms.db 
-          adb reboot 
-          echo "We have now deleted your mms/sms database, phone is now rebooting";;
+          adb shell 'su -c' rm /data/data/com.android.providers.telephony/databases/mmssms.db
+          adb reboot
+          echo "We have now deleted your mms/sms database, phone is rebooting since this is required to sync sms/mms db..";;
 
-          "Print Root Status") which su >> /dev/null && echo "Yes, phone has been rooted" || echo "Phone seems to be untouched" ;;
+          "Print Root Status") 
+           echo -e "\nPlease wait, checking root status"
+           adb shell which su >> /dev/null && echo -e "Device is rooted.\n" || echo -e "Device is NOT rooted.\n" ;;
 
           "Print Battery Level") 
            battery="$(adb shell dumpsys power | grep mBatteryLevel= | cut -d'=' -f2)"
