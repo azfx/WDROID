@@ -10,13 +10,13 @@ the work of adb and fastboot for android devices.
 #### Examples of usage:
 
 ###### Flash Ramdisk on HUAWEI devices with TWRP: 
-![Screenshot](_images/flash-ramdisk.gif)
+![Screenshot](_images/flash_recovery.gif)
 
 ###### Unlock access to bootloader:
 ![Screenshot](_images/unlock-bootloader.gif)
 
 ###### Unlock bootloader:
-![Screenshot](_images/fastboot-unlock.gif)
+![Screenshot](_images/fastboot_unlock.gif)
 
 ###### Flash device with magisk and get ROOT:
 ![Screenshot](_images/flash_magisk.gif)
