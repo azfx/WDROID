@@ -7,9 +7,31 @@
 wuzedroid is a console tool which is intended to facilitate
 the work of adb and fastboot for android devices.
 
+#### Examples of usage:
+
+###### Flash Ramdisk on HUAWEI devices with TWRP: 
+![Screenshot](_images/flash-ramdisk.gif)
+
+###### Unlock access to bootloader:
+![Screenshot](_images/unlock-bootloader.gif)
+
+###### Unlock bootloader:
+![Screenshot](_images/fastboot-unlock.gif)
+
+###### Flash device with magisk and get ROOT:
+![Screenshot](_images/flash_magisk.gif)
+
+### Other features:
+##### Uninstall bloatware
+##### Call someone directly from terminal.
+##### Unlock pin and sim without touching phone
+##### Print stored wifi data
+##### Bruteforce pinlock
+##### And alot more.
+
 #### REQUIREMENTS
 
-A linux setup would be good ;)
+A linux setup would be good with android-tools(adb/fastboot) ;)
 
 #### CONTACT 
 
