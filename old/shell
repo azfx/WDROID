@@ -1,0 +1,5 @@
+#!/bin/bash
+
+read -p "Vad vill du skriva" $1
+
+adb shell input test $1

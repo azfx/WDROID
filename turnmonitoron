@@ -1,0 +1,8 @@
+echo 1 > /sys/class/leds/lcd_backlight0/brightness 
+
+# turn highest brightness
+echo 255 > brightness
+
+# TURN FLASHLIGHT ON
+echo 1 > /sys/class/leds/torch/brightness
+echo 0 > /sys/class/leds/torch/brightness

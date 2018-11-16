@@ -1,0 +1,54 @@
+################################################
+## Author: wuseman
+## Developer: wuseman
+################################################
+
+
+# 1.6 New features has been added
++-------------------------------------
++ Now you can read sms directly from your pc (require sqlite3)
++ Now you take a photo with delay
++ Remove Empty Folders From Already Deleted Apps
++ Check if your device is compatible with qtadb
++ List contacts on device (require sqlite3)
++ Detect if phone is connected or not, if not then dont run wdroid
++ Detect if adb is installed on pc, supported for (Gentoo/Sabayon/Ubuntu/Debian/Raspbian/Mint)
++ Bugfixes
+
+# 1.5 New features has been added 
++-------------------------------------
++ Rewritten entire code to a more clean and nice setup
+- Removed ascii when you run wuzedroid since we need room for new features ;)
++ Added feature to see if phone has been rooted or not
++ Print battery level
++ Show error logs
++ Print IMEI
++ Print device model
++ Print Serial No.
++ Open settings menu
+
+
+# 1.3 New features has been added:
++ ------------------------------------
++ Fixed minor bugs
++ Press any key to end the call if you calling
++ Send SMS directly from cli
++ Delete all SMS 
+
+# 1.2 New features has been added:
++ ------------------------------------
++ Preview android version
++ Restart USB / Wifi mode
++ Preview wifi passwords stored on device
++ Bruteforce pin locks
++ Copy files to and from phone
++ Install / Uninstall / Update / Upgrade applications
++ You now even can make a call directly from this tool
+
+
+# 1.0  wuzedroid has been released 2018-06-11 with minimal features
++ ------------------------------------
++ Start and Kill adb
++ Reboot device into Normal, Recovery, Bootloader
++ Enter shell 
+
