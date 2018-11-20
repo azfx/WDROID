@@ -37,10 +37,14 @@
 ##################################################################################
 #### USER SETTINGS ###############################################################
 ##################################################################################
-# key=""                                      # Bootloader Key ###
-# mzip="magiskmanager-v17.1.zip"                              # Magisk zip     ###
-# mapk="magiskmanager-v.6.0.1.apk"                            # Magisk apk     ###
-pincode="0000"
+ROOT="/var/git/wdroid/root-files-p8"                        ### Path To Files  ###
+stock_recovery="$ROOT/w-stock-recovery.img"                 ### Stock Recovery ###
+twrp_image="$ROOT/w-twrp-v2.0.img"                          ### TWRP IMAGE     ###
+bootloader_key="<bootloader_key_here>"                      ### Bootloader key ###
+magisk_zip="$ROOT/magiskmanager-v17.1.zip"                  ### Magisk ZIP     ###
+magisk_apk="$ROOT/magiskmanager-v.6.0.1.apk"                ### Magisk Manager ###
+device_pin="<pin_here>"                                     ### Device PIN     ###
+sim_pin="<sim_pin>"                                         ### SimCard PIN    ###
 ##################################################################################
 ######## DONT TOUCH ANYTHING BELOW UNLESS YOU KNOW EXACTLY WHAT YOU ARE DOING ####
 ##################################################################################
@@ -138,24 +142,29 @@ esac
 
 help() {
 cat << "EOF"
-  -f    Turn Flashlight ON or OFF
-  -ds   Check device status
-  -h    Show this help      
-  -ul   Unlock pinlock for device
-  -us   Unlock pinlock for sim and device (after a reboot)
-  -s    Print Serial
-  -b    Print Battery Level
-  -w    Print Stored SSID and PSK For Wi-fi  
-  -c    Make a call                 
-  -b4   Bruteforce Pinlock (4Pin)     
-  -r    Reboot device (bootloader|recovery|system)      
-  -ru   Restart USB Mode
-  -rw   Restart Wi-Fi Mode      
-  -rb   Relock Bootloader (Huawei Only)     
-  -ub   Unlock Bootloader (Huawei Only)      
-  -fr   Flash Recovery With TWRP (Huawei Only)     
-  -fm   Flash Device With Magisk (Huawei Only)
-  -w    Print Stored SSID and PSK For Wi-Fi
+
+wdroid - is a console tool which is intended to facilitate the work with adb and fastboot
+
+ where:
+      -4    Bruteforce Pinlock (4Pin)     
+      -6    Bruteforce Pinlock (6Pin)     
+      -c    Make a call
+      -f    Flash Recovery With TWRP (Huawei Only)     
+      -fs    Flash Device Back To Stockrom (Huawei Only)     
+      -m    Flash Device With Magisk (Huawei Only)
+      -h    Show this help     
+      -r    Reboot device (bootloader|recovery|system)      
+      -s    Check device status
+      -rb   Relock Bootloader (Huawei Only)     
+      -ub   Unlock Bootloader (Huawei Only)      
+      -B    Print Battery Level
+      -I    Install Magisk Manager (Huawei Only)
+      -FR   Factory Reset Your Device
+      -S    Print Serial
+      -T    Take a photo [use --delay for take a photo after X seconds]
+      -W    Print Stored SSID and PSK For Wi-fi  
+      -UL   Unlock pinlock for device
+      -US   Unlock pinlock for sim and device (after a reboot)
 
 EOF
 }
@@ -174,10 +183,6 @@ esac
 # adb shell settings put global development_settings_enabled 1 &> /dev/null
 #echo "[+] Developer mode is now enable.."
 #}
-
-flashlight() {
-                adb shell 'su -c' echo 1 > /sys/class/leds/torch/brightness 
-}
 
 call() {
 read -p "[+] Enter Nmumber: +46" number
@@ -202,7 +207,7 @@ esac
 
 
 device_status() {
-     if adb devices | sed 1d | grep device; then echo "[+] Device is connected: $(adb devices | awk '{print $1}' | sed 1d)"; else echo "[+] Device is not connected.."; fi | sed 1d; echo ""
+      if adb devices | sed 1d | grep device; then echo "[+] Device is connected: $(adb devices | awk '{print $1}' | sed 1d)"; else echo "[+] Device is not connected.."; fi | sed 1d; echo ""
 }
 
 relock_bootloader() {
@@ -213,7 +218,7 @@ unlock_bootloader() {
      echo "[+] Rebooting device to bootloader";
      adb reboot bootloader;
      bar 
-     fastboot oem unlock 5377505155372691 &> /dev/null
+     fastboot oem unlock $bootloader_key &> /dev/null
      echo "[+] Press 'VOL UP' followed by 'POWER' on your device.."
      echo "[+] When you pressing YES your device will reboot into.."
      echo "[+] eRecovery, choose to download and reinstall, enjoy.."
@@ -222,7 +227,7 @@ unlock_bootloader() {
 flash_recovery() {
      echo "[+] Please wait.."
      echo "[+] Rebooting device into bootloader."; adb reboot bootloader; bar;echo "[+] Flashing recovery partition..";sleep 0.5;
-     if fastboot flash recovery_ramdisk w-twrp-v2.0.img 2> /dev/null; then echo "[+] Successfully flashed recovery..";echo "[+] Rebooting device.."; fastboot reboot; else
+     if fastboot flash recovery_ramdisk $twrp_image 2> /dev/null; then echo "[+] Successfully flashed recovery..";echo "[+] Rebooting device.."; fastboot reboot; else
      echo "[+] Failed to flash device, please do it manually. Aborted..";exit; fi
 }
 
@@ -237,14 +242,6 @@ flash_magisk() {
      echo "[+] Enjoy your fully rooted Huawei device.."; echo "";else echo "[+] Something went wrong, please do it manally.."
      echo "[+] 'adb sideload $mzip";echo "[+] Aborted"; exit
      fi
-}
-
-restart_usb() {
-if adb usb; then echo echo "[+] Restarted usb mode.."; else echo "[+] Something went wrong, cant restart usb mode.. Aborted"; fi
-}
-
-restart_wifi() {
-if adb wifi; then echo echo "[+] Restarted wifi mode.."; else echo "[+] Something went wrong, cant restart wifi mode.. Aborted"; fi
 }
 
 wifi_ssidpsk() {
@@ -293,7 +290,7 @@ screen="$(adb shell dumpsys nfc | grep 'mScreenState=')"
 case $screen in
       "mScreenState=ON_LOCKED") 
        echo "[+] Unlocking Device.."
-       pincode=$pin
+       pincode="$pin_device"
        adb shell input keyevent 82
        adb shell input keyevent 82
        adb shell input text $pincode; sleep 0.4
@@ -307,11 +304,11 @@ esac
 unlock_sim() {
    echo "[+] Unlocking Sim"
    adb shell input keyevent 82
-   adb shell input text $pincode; sleep 1.4
+   adb shell input text $pin_sim; sleep 1.4
    echo "[+] Unlocked Sim"
    adb shell input keyevent 66; sleep 2.0
    echo "[+] Unlocking Device"
-   adb shell input text $pincode
+   adb shell input text $pin_device
    adb shell input keyevent 66
    echo "[+] Unlocked Device"
    echo ""
@@ -337,7 +334,7 @@ adb shell 'su -c' cat /data/misc/wifi/WifiConfigStore.xml  | grep -i '"SSID">' -
 echo -e "============================================="
 }
 
-takephoto() {
+take_photo() {
 if [ "$1" = "--delay" ]; then
  echo -e "Launching camera.."
  adb shell "am start -a android.media.action.IMAGE_CAPTURE > /dev/null" && \
@@ -358,12 +355,57 @@ esac
 fi
 }
 
+install_magisk() {
+if [ -a "$magisk_apk" ]; then
+echo "[+] Installing magisk.."
+if [ ! "$(adb install $magisk_apk)" ]; then 
+echo "[+] Something went wrong. Aborted."; echo ""; else
+echo "[+] Successfully installed magisk"
+echo "[+] Your device is now fully unlocked.."; echo ""
+fi
+else
+echo "[+] Cant find apk file."
+echo ""
+exit 0
+fi
+}
+
+
+factory_reset() {
+read -p "[+] Are you really SURE to factory reset your device (YES): " YESFFS
+if [ $YESFFS = "YES" ]; then
+adb shell  "su -c 'am broadcast -a android.intent.action.MASTER_CLEAR'" 
+else
+echo "[+] Aborted."
+fi
+}
+
+flash_stockrom() {
+GOOD="\e[1;32m"
+END="\e[0m"
+echo -e "$GOOD *$END Flashing cache...\e[0m"
+fastboot flash cache ./stockimages/stock-CACHE.img &> /dev/null
+echo -e "$GOOD *$END Done...$END"
+echo -e "$GOOD *$END Flashing kernel...\e[0m"
+fastboot flash kernel ./stockimages/stock-KERNEL.img &> /dev/null
+echo -e "$GOOD *$END Done...$END"
+echo -e "$GOOD *$END Flashing ramdisk...\e[0m"
+fastboot flash ramdisk ./stockimages/stock-RAMDISK.img &> /dev/null
+echo -e "$GOOD *$END Done...$END"
+echo -e "$GOOD *$END Flashing recovery_ramdisk...\e[0m"
+fastboot flash recovery_ramdisk ./stockimages/stock-RECOVERY_RAMDISK.img &> /dev/null
+echo -e "$GOOD *$END Done...$END"
+echo -e "$GOOD *$END Flashing SYSTEM (this will take some time)...\e[0m"
+fastboot flash system ./stockimages/stock-SYSTEM.img &> /dev/null
+echo -e "$GOOD *$END Done...\e[0m"
+echo  "-e \n\n *$END Rebooting device"
 
 
 onoroff() {
 isphoneconnected="$(adb devices | sed '1d' | sed '/^$/d')"
 if [ ! $isphoneconnected 2> /dev/null ]; then
    banner
+   echo ""
    echo " Your device is not connected properly.."
    echo ""
    exit
@@ -375,23 +417,29 @@ banner
 echo ""
 help
 fi
+
 case $1 in
-          "-f")      banner;echo "";onoroff;flashlight;;
-          "-ul")     banner;echo "";onoroff;unlock_pin;;
-          "-ub")     banner;echo "";onoroff;uninstall_bloatware;;
-          "-us")     banner;echo "";onoroff;unlock_sim;;
-          "-s")      banner;echo "";onoroff;serial;;
-          "-b")      banner;echo "";onoroff;battery;;
-          "-w")      banner;echo "";onoroff;wifi_psk ;;
+          "-4")     banner;echo "";onoroff;bruteforce4pin ;;
           "-c")      banner;echo "";onoroff;call ;;
-          "-ds")     banner;echo "";device_status ;;
-          "-b4")     banner;echo "";onoroff;bruteforce4pin ;;
+          "-f")     banner;echo "";onoroff;flash_recovery ;;
+          "-fs")     banner;echo "";onoroff;flash_stockrom ;;"
+          "-m")     banner;echo "";onoroff;flash_magisk ;;
           "-h")      banner;echo "";help;echo "";;
           "-r")      banner;echo "";onoroff;adb_reboot;;
-          "-ru")     banner;echo "";onoroff;restart_usb ;;
-          "-rw")     banner;echo "";onoroff;restart_wifi ;;
           "-rb")     banner;echo "";onoroff; relock_bootloader ;;
           "-ub")     banner;echo "";onoroff; unlock_bootloader ;;
-          "-fr")     banner;echo "";onoroff;flash_recovery ;;
-          "-fm")     banner;echo "";onoroff;flash_magisk ;;
+          "-s")     banner;echo "";device_status ;;
+          "-B")      banner;echo "";onoroff;battery;;
+          "-I")     banner;echo "";onoroff;install_magisk ;;
+          "-FR")    banner;echo "";onoroff; factory_reset ;;
+          "-W")      banner;echo "";onoroff;wifi_psk ;;
+          "-S")      banner;echo "";onoroff;serial;;
+          "-T")     banner;echo "";onoroff;take_photo;;
+          "-UL")     banner;echo "";onoroff;unlock_pin;;
+          "-US")     banner;echo "";onoroff;unlock_sim;;
+          "*")        banned;echo "";onoroff;echo "Invalid Option" ;;
+
+
 esac
+
+
