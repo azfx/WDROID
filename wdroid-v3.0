@@ -1,0 +1,529 @@
+#!/bin/bash
+####
+#### Author: wuseman <wuseman@nr1.nu>
+#### Version: 3.0
+#### Description: wdroid has been especially developer for huawei devides
+#### Usage: ./wdroid -h
+####
+
+set -e
+#######################################################################
+# Settings                                                            #
+# ------------------------------------------------------------------- #
+# The below lines is the only thing you should edit with this tool    #
+# ------------------------------------------------------------------- #
+#######################################################################
+
+# Path
+stockrom_path="/mnt/nas/private/drivers-and-config-files/huawei-p8-lite/stockrom/PRA-L31HN_hw_eu-android8.0-emui8.0/stockimages"
+rootfiles_path="/mnt/nas/private/drivers-and-config-files/huawei-p8-lite/root-files"
+
+# Files
+stock_kernel="$stockrom_path/stock-KERNEL.img"                       # System Stock CRC Image
+stock_system="$stockrom_path/stock-SYSTEM.img"                        # System Stock Rom Image
+stock_data="$stockrom_path/stock-DATA.img"                           # System Stock Data Image
+stock_cache="$stockrom_path/stock-CACHE.img"                         # System Stock Cache Image
+stock_recovery_ramdisk="$stockrom_path/stock-RECOVERY_RAMDISK.img"   # System Stock Recovery_Ramdisk Image 
+stock_crc="$stockrom_path/stock-CRC.img"                             # System Stock CRC Image
+
+# Root files
+twrp="$rootfiles_path/wuseman-twrp-prx-p8lite.img"                   # TWRP Image
+fmagisk="$rootfiles_path/magisk-v17.1.zip"                            # Magisk ZIP file
+
+# Call
+landscode="+46"
+
+# Misc
+pincode="1939"
+
+##############################################################
+### CODE BEGINS HERE, DONT TOUCH UNLESS EXACTLY WHAT       ###
+### YOU ARE DOING, IT MAY HARM YOUR DEVICE YOUT KNOW       ###
+##############################################################
+
+banner() {
+cat << "EOF"
+              _           _     _
+             | |         (_)   | |
+ __      ____| |_ __ ___  _  __| | Author: wuseman
+ \ \ /\ / / _` | '__/ _ \| |/ _` | Version: 3.0
+  \ V  V / (_| | | | (_) | | (_| |
+   \_/\_/ \__,_|_|  \___/|_|\__,_|
+
+EOF
+}
+
+isadbinstalled() {
+adb="$(which adb 2> /dev/null)"
+distro="$(cat /etc/os-release | head -n 1 | cut -d'=' -f2 | sed 's/"//g')"
+
+if [ -z "$adb" ]; then
+ echo -e "\nThis tool require adb...\n"
+  read -p "Install adb (Y/n) " adbinstall
+fi
+
+case $adbinstall in
+     "Y")
+        echo -e "\nPlease wait..\n"
+      sleep 1
+case $distro in
+     "Gentoo")
+        echo -e "It seems you running \e[1;32m$distro\e[0m wich is supported, installing adb....\n"
+        emerge --ask android-tools ;;
+     "Sabayon")
+        echo -e "It seems you running \e[1;32m$distro\e[0m wich is supported, installing adb....\n"
+        emerge --ask android-tools ;;
+     "Ubuntu")
+        echo -e "It seems you running \e[1;32m$distro\e[0m wich is supported, installing adb....\n"
+        apt update -y; apt upgrade -y; apt-get install adb ;;
+     "Debian")
+        echo -e "It seems you running \e[1;32m$distro\e[0m wich is supported, installing adb....\n"
+        apt update -y; apt upgrade -y; apt-get install adb ;;
+     "Raspbian")
+        echo -e "It seems you running \e[1;32m$distro\e[0m wich is supported, installing adb....\n"
+        apt update -y; apt upgrade -y; apt-get install adb ;;
+     "Mint")
+        echo -e "It seems you running \e[1;32m$distro\e[0m wich is supported, installing adb....\n"
+        apt update -y; apt upgrade -y; apt-get install adb ;;
+     "no") echo "Aborted." ;
+           exit 0 ;;
+esac
+       echo -e "This tool is not supported for $distro, please go compile it from source instead...\n"
+esac
+}
+
+# Description for help
+# ---------------------------------------------------------------------
+# If user trying wihtout any getopts then print help
+# ---------------------------------------------------------------------
+help() {
+echo -e "$basename$0 - [-b] [-e] [-f] [-h] [-r] [-t] - Work with android devices via commandline\n"
+echo -e "   where:"
+echo -e "          [-b] BANNER           - Print $basename$0 banner"
+echo -e "          [-c] CALL             - Call someone with or without speaker"
+echo -e "          [-d] DELETE_SMS       - Delete all sms and mms from database (reboot required)"
+echo -e "          [-D] DIALED           - List all dialed numbers"
+echo -e "          [-e] ERASE            - Erase your device via bootloader"
+echo -e "          [-f] FLASH            - Flashing your device to stockrom"
+echo -e "          [-F] FACTORY_RESET    - This will restore your device to factory mode"
+echo -e "          [-h] HELP             - Print this help"
+echo -e "          [-m] MAGISK           - Flash your device with magisk and gain root"
+echo -e "          [-r] REBOOT           - Reboot device to system again"
+echo -e "          [-R] READ_SMS         - Read sms and mms stored on your device"
+echo -e "          [-s] SEND_SMS         - Send sms to any number via commandline"
+echo -e "          [-t] TWRP             - Flash recovery partition with twrp"
+echo ""
+}
+
+# Description for root
+# ---------------------------------------------------------------------
+# Check if user is in plugdev group otherwise force root
+# ---------------------------------------------------------------------
+root() {
+if [[ $EUID -gt "0" ]]; then
+    echo "This script require root privileges"
+    exit
+fi
+}
+
+# Description for onoroff
+# ---------------------------------------------------------------------
+# If phone is connected via fastboot then we moving on to next step.
+# If the case is we cant find the device connected to the fastboot mode
+# then we are checking if the phone is not connected via normal mode
+# insted, if not then print that device is not connected properly
+# ---------------------------------------------------------------------
+
+
+# Description for aonoroff
+# ---------------------------------------------------------------------
+# For adb commands check if user has boot into normal or recovery mode
+# ---------------------------------------------------------------------
+aonoroff() {
+isphoneconnected="$(adb devices | sed '1d' | sed '/^$/d')"
+ if [ $isphoneconnected 2> /dev/null ]; then
+      echo "Your device is not connected properly.."
+      exit
+fi
+}
+
+# Description for fonoroff
+# ---------------------------------------------------------------------
+# For fastboot commands check if user has boot into bootloader runmode
+# ---------------------------------------------------------------------
+fonoroff() {
+if [[ -z $(fastboot devices) ]]; then
+     echo "Error: Your device is not in bootloader mode"
+     echo "Error: Please reboot into bootloader mode"
+     echo "Error: Reboot your device into bootloader by key combination"
+     echo "Error: Powerbutton and Volume down when device is offline."
+     exit 0
+fi
+}
+
+
+# Description for screen
+# ---------------------------------------------------------------------
+# Check if screen is on or in sleep mode since this is required
+# for functions for ake a call as example..
+# ---------------------------------------------------------------------
+
+screen() {
+sleeping="$(adb shell dumpsys power | grep 'mWakefulness=')"
+screen="$(adb shell dumpsys nfc | grep 'mScreenState=')"
+case $screen in
+      "mScreenState=OFF") echo "Unlocking device"
+                          adb shell input keyevent 82
+                          sleep 1                            # We need this so screen has time to power on
+                          adb shell input keyevent 82
+                          sleep 1                            # We need this so screen has time to swipe before we type pincode
+                          adb shell input text $pincode      # Enter pincode to unlock phone
+                          ;;
+      "mScreenState=ON_LOCKED") 
+       echo "[+] Unlocking Device.."
+       pincode="$pin_device"
+       adb shell input keyevent 82
+       adb shell input keyevent 82
+       adb shell input text $pincode; sleep 0.4
+       echo "[+] Unlocked Device.."; echo "" ;;
+       "mScreenState=ON_UNLOCKED")
+       echo "" ;;
+esac
+}
+
+# Description for erase
+# ---------------------------------------------------------------------
+# We will erase partitions:
+# system, data, cache, crc, ramdisk and recovery_ramdisk to stockrom
+# We will double check if the user really wanna erase the partitions
+# for safety, this cannot be undone
+# ---------------------------------------------------------------------
+erase() {
+echo "Are you really sure you want to erase SYSTEM, DATA,"
+read -p 'CACHE, CRC, RAMDISK and RECOVERY_RAMDISK partitions (Y/n): ' rlysureerase
+echo "======================================================================"
+source "$(pwd)/spinner.sh"
+if [[ $rlysureerase = "Y" ]]; then
+echo 'Please wait, this will take some time.'
+echo "======================================================================"
+      start_spinner 'Erasing SYSTEM'
+        fastboot erase system &> /dev/null
+      stop_spinner $?
+      start_spinner 'Erasing DATA'
+        fastboot erase data &> /dev/null
+      stop_spinner $?
+      start_spinner 'Erasing CACHE'
+        fastboot erase cache &> /dev/null
+      stop_spinner $?
+      start_spinner 'Erasing CRC'
+        fastboot erase crc &> /dev/null
+      stop_spinner $?
+      start_spinner 'Erasing RECOVERY_RAMDISK'
+        fastboot erase recovery_ramdsk &> /dev/null
+      stop_spinner $?
+      start_spinner 'Erasing CRC'
+        fastboot erase crc &> /dev/null
+      stop_spinner $?
+      echo "======================================================================"
+      echo "Phone has been successfully wiped"
+      echo "======================================================================"
+else
+   echo "Aborted."
+   exit 0
+fi
+}
+
+# Description for flash
+# ---------------------------------------------------------------------
+# We will flash:
+# system, data, cache, crc, ramdisk and recovery_ramdisk to stockrom
+# We will double check if the user really wanna flash the partitions
+# for safety, this cannot be undone.
+# ---------------------------------------------------------------------
+flash() {
+if ! [[ -f "$stock_kernel" ]]; then
+    echo "Error: Can't find your kernel image, aborted"
+    exit 1
+fi
+
+if ! [[ -f "$stock_cache" ]]; then
+    echo "Error: Can't find your cache image, aborted"
+    exit 1
+fi
+
+if ! [[ -f "$stock_recovery_ramdisk" ]]; then
+    echo "Error: Can't find your recovery_ramdisk_image, aborted"
+    exit 1
+fi
+
+if ! [[ -f "$stock_system" ]]; then
+    echo "Error: Can't find your system image, aborted"
+    exit 1
+fi
+
+
+echo "Are you really sure you want to flash SYSTEM, DATA,"
+read -p 'CACHE, CRC, RAMDISK and RECOVERY_RAMDISK partitions (Y/n): ' rlysureflash
+echo "======================================================================"
+source "$(pwd)/spinner.sh"
+if [[ $rlysureflash = "Y" ]]; then
+echo 'Please wait, this will take some time.'
+echo "======================================================================"
+   start_spinner 'Flashing CACHE'
+     fastboot flash cache $stock_cache &> /dev/null
+   stop_spinner $?
+   start_spinner 'Flashing KERNEL'
+     fastboot flash kernel $stock_kernel &> /dev/null
+   stop_spinner $?
+   start_spinner 'Flashing RAMDISK'
+     fastboot flash ramdisk $stock_ramdisk &> /dev/null
+   stop_spinner $?
+   start_spinner 'Flashing RECOVERY_RAMDISK'
+     fastboot flash recovery_ramdisk $stock_recovery_ramdisk &> /dev/null
+   stop_spinner $?
+   start_spinner 'Flashing SYSTEM'
+     fastboot flash system $stock_system &> /dev/null
+   stop_spinner $?
+      echo "======================================================================"
+      echo "Phone has been successfully recovered to stock-rom :-)"
+      echo "======================================================================"
+else
+   echo "Aborted."
+   exit 0
+fi
+}
+
+# Description for reboot
+# ---------------------------------------------------------------------
+# Let the user choose to reboot after erase or flashing device
+# ---------------------------------------------------------------------
+reboot() {
+read -p "Are you really sure you want to reboot your device (Y/n): " rebootdevice
+source "$(pwd)/spinner.sh"
+if [[ $rebootdevice = "Y" ]]; then
+   start_spinner 'Rebooting device'
+       fastboot reboot &> /dev/null
+   stop_spinner $?
+else
+    echo "Aborted."
+    exit 0
+fi
+}
+
+
+# Description for ftwrp
+# ---------------------------------------------------------------------
+# This option will flash your recovery partition to use twrp
+# ---------------------------------------------------------------------
+twrp() {
+read -p "Are you really sure you want to flash recovery with twrp (Y/n): " flashtwrp
+source "$(pwd)/spinner.sh"
+
+if [[ ! -a $twrp ]]; then
+    echo "Error: Can't find twrp image, aborted."
+    exit 0
+fi
+
+if [[ $flashtwrp = "Y" ]]; then
+   start_spinner 'Flashing recovery partition with twrp'
+       fastboot flash recovery_ramdisk $twrp &> /dev/null
+   stop_spinner $?
+else
+    echo "Aborted."
+    exit 0
+fi
+}
+
+# Description for fmagisk
+# ---------------------------------------------------------------------
+# This option will flash your device with magisk and gein root
+# ---------------------------------------------------------------------
+fmagisk() {
+read -p "Are you really sure you want to flash your device with magisk (Y/n): " flashmagisk
+source "$(pwd)/spinner.sh"
+
+if [[ ! -a $fmagisk ]]; then
+    echo "Error: Can't find magisk zip file, aborted."
+    exit 0
+fi
+     echo "Reboting into TWRP recovery mode";
+     adb reboot recovery
+     echo "===================================================="
+     echo -ne '#                                             (01%)\r'; sleep 2    
+     echo -ne '####                                          (19%)\r';sleep 2    
+     echo -ne '########                                      (27%)\r';sleep 2    
+     echo -ne '##########                                    (39%)\r';sleep 2    
+     echo -ne '###############                               (41%)\r';sleep 2    
+     echo -ne '##################                            (44%)\r';sleep 2    
+     echo -ne '#######################                       (58%)\r';sleep 2    
+     echo -ne '#########################                     (61%)\r';sleep 2    
+     echo -ne '###########################                   (68%)\r';sleep 2    
+     echo -ne '#############################                 (61%)\r';sleep 2    
+     echo -ne '###############################               (71%)\r';sleep 2    
+     echo -ne '#################################             (74%)\r';sleep 2    
+     echo -ne '###################################           (83%)\r';sleep 2    
+     echo -ne '#####################################         (89%)\r';sleep 2     
+     echo -ne '############################################  (98%)\r';sleep 2     
+     echo -ne '############################################# (100%)\r';echo -ne '\n'
+     echo "===================================================="
+     echo "--> Device has now entered recovery mode (TWRP)";
+     echo "--> Press 'ADB Sideload' (DOWN IN LEFT CORNER)"; 
+     echo "--> Now just swipe to enable 'ADB Sideload'"
+     echo "===================================================="
+read -p "--> Press enter when you see sideload is listening...";
+     adb sideload $rootfiles_path/magiskmanager-v17.1.zip
+     echo "--> Successfully flashed device with magisk.."
+     echo "--> Enjoy your fully unlocked device.."
+     echo "===================================================="
+
+}
+
+# Description for below command
+# ---------------------------------------------------------------------
+# If user trying to run script without an argument, print help
+# ---------------------------------------------------------------------
+if [[ -z $1 ]]; then
+    echo -e "Option -$OPTARG requires an argument, use '$basename$0 -h' for help" >&2
+    exit 1;
+fi
+
+
+dialed() {
+dialeddb="/data/data/com.android.providers.contacts/databases"
+dialedtmp="/storage/emulated/0/wuseman/tmp"
+if [[ -n $(adb shell which su &> /dev/null) ]]; then
+     echo "Your device need be rooted for this feature.";
+     exít 1
+fi
+
+if [[ -n $(type sqlite3 -v &> /dev/null) ]]; then
+     echo "Sqlite3 is required to be installed on your pc, aborted"
+     exit 1
+fi
+echo "Printing dialed numbers:"
+echo "------------------------"
+adb shell 'su -c' cp $dialeddb/calls.db $dialedtmp &> /dev/null
+adb pull $dialedtmp &> /dev/null
+echo "SELECT * FROM calls;" | sqlite3 -csv calls.db | awk -F',' '{print $2}'
+}
+
+
+
+readsms() {
+smsdb="/data/data/com.android.providers.telephony/databases/"
+smstmp="/storage/emulated/0/wuseman/tmp/"
+
+if [[ -n $(adb shell which su &> /dev/null) ]]; then
+     echo "Your device need be rooted for this feature.";
+     exít 1
+fi
+
+if [[ -n $(type sqlite3 -v &> /dev/null) ]]; then
+     echo "Sqlite3 is required to be installed on your pc, aborted"
+     exit 1
+fi
+adb shell 'su -c' cp $smsdb/mmssms.db $smstmp &> /dev/null
+adb pull $smstmp &> /dev/null
+rm -rf tmp
+}
+
+
+
+
+delsms() {
+read -p "Are you REALLY sure you want to delete all sms (Y/n): " delem
+if [[ $delem = "Y" ]]; then
+    adb shell 'su -c' rm /data/data/com.android.providers.telephony/databases/mmssms.db
+    echo "Deleted all sms, restarting your device cause we need to sync sms database."
+    adb reboot
+else
+    echo "Aborted."
+    exit 0
+fi
+}
+
+
+
+sendsms() {
+          adb shell input keyevent 82
+          sleep 1;
+          adb shell input keyevent 82
+          sleep 1;
+          adb shell input text $pincode
+          sleep 1;
+          adb shell input keyevent 3
+          sleep 0.5
+          read -p "Send To: " numbersend
+          read -p "Enter Text: $texttosend" smstext
+          adb shell am start -a android.intent.action.SENDTO -d sms:$numbersend --es sms_body "$smstext" --ez exit_on_sent true
+          sleep 1
+          adb shell input keyevent 22
+          sleep 1
+          adb shell input keyevent 66
+          echo "Sms has been sent"
+}
+
+
+
+# Description for read sms
+# ---------------------------------------------------------------------
+# Read sms stored on device.
+# ---------------------------------------------------------------------
+call() {
+read -p "Enter Nmumber: $landscode" number
+read -p "Do you want speaker on (y/n): " speaker
+case $speaker in
+           "y") adb shell am start -a android.intent.action.CALL -d tel:$landscode$number &> /dev/null; 
+                sleep 2.0;
+                adb shell service call audio 20 i32 1 # does this really works on android oreo 8.0?
+                echo "Dialing +46$number"
+                read -p "Press any key to end call"
+                adb shell input keyevent KEYCODE_ENDCALL
+                echo -e "Call ended"
+                adb shell input keyevent 6
+                exit 1 ;;
+           "n") adb shell am start -a android.intent.action.CALL -d tel:+46$number &> /dev/null
+                echo -e "Dialing +46$number"
+                read -p "Press any key to end call"
+                adb shell input keyevent KEYCODE_ENDCALL
+                echo "Call ended"
+                adb shell input keyevent 6
+                exit 1 ;;
+esac
+}
+
+
+factoryreset() {
+read -p "Are you REALLY sure you want to factory reset your device (Y/n): " YESFFS
+if [ $YESFFS = "YES" ]; then
+  if [[ -n $(adb shell which su &> /dev/null) ]]; then
+      echo "Please wait, restoring your device to factory settings, phone will be restart.."
+      adb shell am broadcast -a android.intent.action.MASTER_CLEAR            # Not rooted
+      adb reboot
+else
+      echo "Please wait, restoring your device to factory settings, phone will be restart.."
+      adb shell  "su -c 'am broadcast -a android.intent.action.MASTER_CLEAR'" # Rooted devivce
+      adb reboot
+fi
+fi
+}
+
+while getopts ":bcdDefFlemhrRst" opt; do
+  case $opt in
+    b) banner                                             ;;
+    c) banner; root; aonoroff; screen; call               ;;
+    d) banner; root; aonoroff; delsms                     ;;
+    D) banner; root; aonoroff; dialed                     ;;
+    e) banner; root; fonoroff; erase                      ;;
+    f) banner; root; fonoroff; flash                      ;;
+    F) banner; root; aonoroff; factoryreset               ;;
+    m) banner; root; aonoroff; fmagisk                    ;;
+    h) banner; help                                       ;;
+    r) banner; root; fonoroff; reboot                     ;;
+    R) banner; root; aonoroff; readsms                    ;;
+    s) banner; root; aonoroff; sendsms                    ;;
+    t) banner; root; fonoroff; twrp                       ;;
+   \?) echo "Error: Invalid option: -$OPTARG" >&2; exit 1 ;;
+  esac
+done
+
