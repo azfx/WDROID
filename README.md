@@ -1,4 +1,4 @@
-![Screenshot](_images/wdroid.png)
+![Screenshot](_/main.png)
 
 # WDROID
 
