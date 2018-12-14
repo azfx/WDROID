@@ -34,7 +34,7 @@ fmagisk="$rootfiles_path/magisk-v17.1.zip"                            # Magisk Z
 landscode="+46"
 
 # Misc
-pincode="1939"
+pincode="xxxx"
 
 ##############################################################
 ### CODE BEGINS HERE, DONT TOUCH UNLESS EXACTLY WHAT       ###
